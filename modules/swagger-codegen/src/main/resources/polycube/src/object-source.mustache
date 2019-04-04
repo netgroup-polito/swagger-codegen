@@ -11,10 +11,8 @@
 #include "{{classname}}_dp.h"
 
 {{classname}}::{{classname}}({{#vars}}{{#vendorExtensions.x-is-key}}const {{{datatype}}} {{{name}}}, {{/vendorExtensions.x-is-key}}{{/vars}}const {{classname}}JsonObject &conf)
-  : Cube(conf.getBase(), { {{classVarName}}_code }, {}) {
-  logger()->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [{{classname}}] [%n] [%l] %v");
-  logger()->info("Creating {{classname}} instance");
-
+  : Cube(conf.getBase(), { {{classVarName}}_code }, {}),
+    {{classname}}Base({{#vars}}{{#vendorExtensions.x-is-key}}{{{name}}}, {{/vendorExtensions.x-is-key}}{{/vars}}conf) {
 {{#vars}}
 {{^vendorExtensions.x-is-base-datamodel}}
 {{^isNotContainer}}
@@ -41,6 +39,7 @@
 {{^vendorExtensions.x-is-required}}
 {{^vendorExtensions.x-has-default-value}}
   }
+
 {{/vendorExtensions.x-has-default-value}}
 {{/vendorExtensions.x-is-required}}
 {{/isReadOnly}}
@@ -50,243 +49,165 @@
 {{/vars}}
 }
 {{/vendorExtensions.x-is-root-object}}
-
 {{#vendorExtensions.x-is-port-class}}
+
 {{classname}}::{{classname}}(polycube::service::Cube<Ports> &parent,
     {{#vendorExtensions.x-classname-inherited}}{{{this}}} port,
     {{/vendorExtensions.x-classname-inherited}}const {{classname}}JsonObject &conf)
-    : Port(port), parent_(static_cast<{{vendorExtensions.x-parent}} &>(parent)) {
-  logger()->info("Creating {{classname}} instance");
-}
+    : PortsBase(parent, port, conf) {}
 {{/vendorExtensions.x-is-port-class}}
-
 {{^vendorExtensions.x-is-root-object}}
 {{^vendorExtensions.x-is-port-class}}
-{{classname}}::{{classname}}({{{vendorExtensions.x-parent}}} &parent, const {{classname}}JsonObject &conf): parent_(parent) {
-  logger()->info("Creating {{classname}} instance");
-}
+
+{{classname}}::{{classname}}({{{vendorExtensions.x-parent}}} &parent, const {{classname}}JsonObject &conf)
+    : {{classname}}Base(parent, conf) {}
 {{/vendorExtensions.x-is-port-class}}
 {{/vendorExtensions.x-is-root-object}}
 
 {{classname}}::~{{classname}}() {}
-
-void {{classname}}::update(const {{classname}}JsonObject &conf) {
-  // This method updates all the object/parameter in {{classname}} object specified in the conf JsonObject.
-  // You can modify this implementation.
-{{#vendorExtensions.x-is-root-object}}
-  Cube::set_conf(conf.getBase());
-{{/vendorExtensions.x-is-root-object}}
-{{#vendorExtensions.x-is-port-class}}
-  Port::set_conf(conf.getBase());
-{{/vendorExtensions.x-is-port-class}}
-
-{{#vars}}
-{{^vendorExtensions.x-is-base-datamodel}}
-{{^vendorExtensions.x-is-key}}
-{{^isReadOnly}}
-  if (conf.{{name}}IsSet()) {
-{{^isNotContainer}}
-    for(auto &i : conf.{{getter}}()) {
-{{#vendorExtensions.x-key-list}}
-      auto {{varName}} = i.{{getter}}();
-{{/vendorExtensions.x-key-list}}
-      auto m = get{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}{{varName}}{{^lastKey}}, {{/lastKey}}{{/vendorExtensions.x-key-list}});
-      m->update(i);
-    }
-{{/isNotContainer}}
-{{#isNotContainer}}
-{{#isPrimitiveType}}
-    {{setter}}(conf.{{getter}}());
-{{/isPrimitiveType}}
-{{^isPrimitiveType}}
-    auto m = {{getter}}();
-    m->update(conf.{{getter}}());
-{{/isPrimitiveType}}
-{{/isNotContainer}}
-  }
-{{/isReadOnly}}
-{{/vendorExtensions.x-is-key}}
-{{/vendorExtensions.x-is-base-datamodel}}
-{{/vars}}
-}
-
-{{classname}}JsonObject {{classname}}::toJsonObject() {
-  {{classname}}JsonObject conf;
-{{#vendorExtensions.x-is-root-object}}
-  conf.setBase(Cube::to_json());
-{{/vendorExtensions.x-is-root-object}}
-{{#vendorExtensions.x-is-port-class}}
-  conf.setBase(Port::to_json());
-{{/vendorExtensions.x-is-port-class}}
-
-{{#vars}}
-{{^vendorExtensions.x-is-base-datamodel}}
-{{#isNotContainer}}
-{{#isPrimitiveType}}
-  conf.{{setter}}({{getter}}());
-{{/isPrimitiveType}}
-{{^isPrimitiveType}}
-  conf.{{setter}}({{getter}}()->toJsonObject());
-{{/isPrimitiveType}}
-{{/isNotContainer}}
-{{^isNotContainer}}
-{{#vendorExtensions.x-is-port-class}}
-  for(auto &i : {{getter}}List()){
-    conf.add{{complexType}}(i->toJsonObject());
-  }
-{{/vendorExtensions.x-is-port-class}}
-{{^vendorExtensions.x-is-port-class}}
-  //  Remove comments when you implement all sub-methods
-  //for(auto &i : {{getter}}List()) {
-  //  conf.add{{complexType}}(i->toJsonObject());
-  //}{{/vendorExtensions.x-is-port-class}}
-{{/isNotContainer}}
-{{/vendorExtensions.x-is-base-datamodel}}
-{{/vars}}
-
-  return conf;
-}
-
 {{^vendorExtensions.x-parent}}
+
 void {{classname}}::packet_in({{vendorExtensions.x-child-ports-classname}} &port,
     polycube::service::PacketInMetadata &md,
     const std::vector<uint8_t> &packet){
-  logger()->info("Packet received from port {0}", port.name());
+  logger()->debug("Packet received from port {0}", port.name());
 }
 {{/vendorExtensions.x-parent}}
 {{#vars}}
 {{^vendorExtensions.x-is-base-datamodel}}
 {{^vendorExtensions.x-has-default-impl}}
+{{^vendorExtensions.x-is-port-class}}
 {{#isNotContainer}}
 {{#isPrimitiveType}}
 
 {{{datatype}}} {{classname}}::{{getter}}() {
-  throw std::runtime_error("[{{classname}}]: Method {{getter}} not implemented");
+  throw std::runtime_error("{{classname}}::{{getter}}: Method not implemented");
 }
 {{^vendorExtensions.x-is-key}}
 {{^isReadOnly}}
 
 void {{classname}}::{{setter}}(const {{{datatype}}} &value) {
-  throw std::runtime_error("[{{classname}}]: Method {{setter}} not implemented");
+  throw std::runtime_error("{{classname}}::{{setter}}: Method not implemented");
 }
 {{/isReadOnly}}
 {{/vendorExtensions.x-is-key}}
 {{/isPrimitiveType}}
 {{/isNotContainer}}
-{{/vendorExtensions.x-has-default-impl}}
-{{/vendorExtensions.x-is-base-datamodel}}
-
 {{^isNotContainer}}
 std::shared_ptr<{{complexType}}> {{classname}}::get{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}const {{type}} &{{varName}}{{^lastKey}}, {{/lastKey}}{{/vendorExtensions.x-key-list}}) {
-{{#vendorExtensions.x-is-port-class}}
-  return get_port(name);
-{{/vendorExtensions.x-is-port-class}}
-{{^vendorExtensions.x-is-port-class}}
-  throw std::runtime_error("[{{classname}}]: Method getEntry not implemented");
-{{/vendorExtensions.x-is-port-class}}
+  throw std::runtime_error("{{classname}}::getEntry: Method not implemented");
 }
 
 std::vector<std::shared_ptr<{{complexType}}>> {{classname}}::get{{nameInCamelCase}}List() {
-{{#vendorExtensions.x-is-port-class}}
-  return get_ports();
-{{/vendorExtensions.x-is-port-class}}
-{{^vendorExtensions.x-is-port-class}}
-  throw std::runtime_error("[{{classname}}]: Method get{{nameInCamelCase}}List not implemented");
-{{/vendorExtensions.x-is-port-class}}
+  throw std::runtime_error("{{classname}}::get{{nameInCamelCase}}List: Method not implemented");
 }
 
 void {{classname}}::add{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}const {{type}} &{{varName}}, {{/vendorExtensions.x-key-list}}const {{complexType}}JsonObject &conf) {
-{{#vendorExtensions.x-is-port-class}}
-  // This method creates the actual Ports object given the key param.
-  add_port<PortsJsonObject>(name, conf);
-  logger()->info("New port created with name {0}", name);
-{{/vendorExtensions.x-is-port-class}}
-{{^vendorExtensions.x-is-port-class}}
-  throw std::runtime_error("[{{classname}}]: Method add{{nameInCamelCase}} not implemented");
-{{/vendorExtensions.x-is-port-class}}
+  throw std::runtime_error("{{classname}}::add{{nameInCamelCase}}: Method not implemented");
 }
 
+// Basic default implementation, place your extension here (if needed)
 void {{classname}}::add{{nameInCamelCase}}List(const std::vector<{{complexType}}JsonObject> &conf) {
-  // TODO: This is a basic default implementation, maybe you want to improve it
-  for (auto &i : conf) {
-    {{#vendorExtensions.x-key-list}}
-    {{type}} {{varName}}_ = i.{{getter}}();
-    {{/vendorExtensions.x-key-list}}
-    add{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}{{varName}}_, {{/vendorExtensions.x-key-list}}i);
-  }
+  // call default implementation in base class
+  {{classname}}Base::add{{nameInCamelCase}}List(conf);
 }
 
+// Basic default implementation, place your extension here (if needed)
 void {{classname}}::replace{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}const {{type}} &{{varName}}, {{/vendorExtensions.x-key-list}}const {{complexType}}JsonObject &conf) {
-  // TODO: This is a basic default implementation, maybe you want to improve it
-  del{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}{{varName}}{{^lastKey}}, {{/lastKey}}{{/vendorExtensions.x-key-list}});
-  {{#vendorExtensions.x-key-list}}
-  {{type}} {{varName}}_ = conf.{{getter}}();
-  {{/vendorExtensions.x-key-list}}
-  add{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}{{varName}}_, {{/vendorExtensions.x-key-list}}conf);
+  // call default implementation in base class
+  {{classname}}Base::replace{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}{{varName}}, {{/vendorExtensions.x-key-list}}conf);
 }
 
 void {{classname}}::del{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}const {{type}} &{{varName}}{{^lastKey}}, {{/lastKey}}{{/vendorExtensions.x-key-list}}) {
-{{#vendorExtensions.x-is-port-class}}
-  remove_port(name);
-{{/vendorExtensions.x-is-port-class}}
-{{^vendorExtensions.x-is-port-class}}
-  throw std::runtime_error("[{{classname}}]: Method del{{nameInCamelCase}} not implemented");
-{{/vendorExtensions.x-is-port-class}}
+  throw std::runtime_error("{{classname}}::del{{nameInCamelCase}}: Method not implemented");
 }
 
+// Basic default implementation, place your extension here (if needed)
 void {{classname}}::del{{nameInCamelCase}}List() {
-  // TODO: This is a basic default implementation, maybe you want to improve it
-  auto elements = get{{nameInCamelCase}}List();
-  for (auto &i : elements) {
-    {{#vendorExtensions.x-key-list}}
-    {{type}} {{varName}}_ = i->{{getter}}();
-    {{/vendorExtensions.x-key-list}}
-    del{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}{{varName}}{{^lastKey}}, {{/lastKey}}{{/vendorExtensions.x-key-list}}_);
-  }
+  // call default implementation in base class
+  {{classname}}Base::del{{nameInCamelCase}}List();
 }
-
 {{/isNotContainer}}
 {{#isNotContainer}}
 {{^isPrimitiveType}}
-std::shared_ptr<{{complexType}}> {{classname}}::get{{nameInCamelCase}}() {
-  throw std::runtime_error("[{{classname}}]: Method get{{nameInCamelCase}} not implemented");
-}
 
+std::shared_ptr<{{complexType}}> {{classname}}::get{{nameInCamelCase}}() {
+  throw std::runtime_error("{{classname}}::get{{nameInCamelCase}}: Method not implemented");
+}
 {{^vendorExtensions.x-is-key}}
 {{^isReadOnly}}
+
 void {{classname}}::add{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}const {{type}} &{{varName}}, {{/vendorExtensions.x-key-list}}const {{complexType}}JsonObject &value) {
-  throw std::runtime_error("[{{classname}}]: Method add{{nameInCamelCase}} not implemented");
+  throw std::runtime_error("{{classname}}::add{{nameInCamelCase}}: Method not implemented");
 }
 
+// Basic default implementation, place your extension here (if needed)
 void {{classname}}::replace{{nameInCamelCase}}(const {{complexType}}JsonObject &conf) {
-  // TODO: This is a basic default implementation, maybe you want to improve it
-  del{{nameInCamelCase}}();
-  {{#vendorExtensions.x-key-list}}
-  {{type}} {{varName}}_ = conf.{{getter}}();
-  {{/vendorExtensions.x-key-list}}
-  add{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}{{varName}}_, {{/vendorExtensions.x-key-list}}conf);
+  // call default implementation in base class
+  {{classname}}Base::replace{{nameInCamelCase}}(conf);
 }
 
 void {{classname}}::del{{nameInCamelCase}}() {
-  throw std::runtime_error("[{{classname}}]: Method del{{nameInCamelCase}} not implemented");
+  throw std::runtime_error("{{classname}}::del{{nameInCamelCase}}: method not implemented");
 }
 {{/isReadOnly}}
 {{/vendorExtensions.x-is-key}}
 {{/isPrimitiveType}}
 {{/isNotContainer}}
+{{/vendorExtensions.x-is-port-class}}
+{{#vendorExtensions.x-is-port-class}}
+
+// Basic default implementation, place your extension here (if needed)
+std::shared_ptr<{{complexType}}> {{classname}}::get{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}const {{type}} &{{varName}}{{^lastKey}}, {{/lastKey}}{{/vendorExtensions.x-key-list}}) {
+  // call default implementation in base class
+  return {{classname}}Base::get{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}{{varName}}{{^lastKey}}, {{/lastKey}}{{/vendorExtensions.x-key-list}});
+}
+
+// Basic default implementation, place your extension here (if needed)
+std::vector<std::shared_ptr<{{complexType}}>> {{classname}}::get{{nameInCamelCase}}List() {
+  // call default implementation in base class
+  return {{classname}}Base::get{{nameInCamelCase}}List();
+}
+
+// Basic default implementation, place your extension here (if needed)
+void {{classname}}::add{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}const {{type}} &{{varName}}, {{/vendorExtensions.x-key-list}}const {{complexType}}JsonObject &conf) {
+  {{classname}}Base::add{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}{{varName}}, {{/vendorExtensions.x-key-list}}conf);
+}
+
+// Basic default implementation, place your extension here (if needed)
+void {{classname}}::add{{nameInCamelCase}}List(const std::vector<{{complexType}}JsonObject> &conf) {
+  // call default implementation in base class
+  {{classname}}Base::add{{nameInCamelCase}}List(conf);
+}
+
+// Basic default implementation, place your extension here (if needed)
+void {{classname}}::replace{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}const {{type}} &{{varName}}, {{/vendorExtensions.x-key-list}}const {{complexType}}JsonObject &conf) {
+  // call default implementation in base class
+  {{classname}}Base::replace{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}{{varName}}, {{/vendorExtensions.x-key-list}}conf);
+}
+
+// Basic default implementation, place your extension here (if needed)
+void {{classname}}::del{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}const {{type}} &{{varName}}{{^lastKey}}, {{/lastKey}}{{/vendorExtensions.x-key-list}}) {
+  // call default implementation in base class
+  {{classname}}Base::del{{nameInCamelCase}}({{#vendorExtensions.x-key-list}}{{varName}}{{^lastKey}}, {{/lastKey}}{{/vendorExtensions.x-key-list}});
+}
+
+// Basic default implementation, place your extension here (if needed)
+void {{classname}}::del{{nameInCamelCase}}List() {
+  // call default implementation in base class
+  {{classname}}Base::del{{nameInCamelCase}}List();
+}
+{{/vendorExtensions.x-is-port-class}}
+{{/vendorExtensions.x-has-default-impl}}
+{{/vendorExtensions.x-is-base-datamodel}}
 {{/vars}}
 
 {{#vendorExtensions.x-has-yang-actions}}
 {{#vendorExtensions.x-yang-actions}}
+
 {{#x-yang-action-has-output}}{{x-yang-action-output-object}}JsonObject{{/x-yang-action-has-output}}{{^x-yang-action-has-output}}void{{/x-yang-action-has-output}} {{classname}}::{{x-yang-action-name-lower-camelcase}}({{#x-yang-action-has-input}}{{x-yang-action-input-object}}JsonObject input{{/x-yang-action-has-input}}) {
-  throw std::runtime_error("[{{classname}}]: Method {{x-yang-action-name-lower-camelcase}} not implemented");
+  throw std::runtime_error("{{classname}}::{{x-yang-action-output-object}}: Method not implemented");
 }
 {{/vendorExtensions.x-yang-actions}}
 {{/vendorExtensions.x-has-yang-actions}}
-
-{{#vendorExtensions.x-parent}}
-std::shared_ptr<spdlog::logger> {{classname}}::logger() {
-  return parent_.logger();
-}
-{{/vendorExtensions.x-parent}}
 {{/model}}{{/models}}

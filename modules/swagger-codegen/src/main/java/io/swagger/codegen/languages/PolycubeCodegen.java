@@ -29,7 +29,6 @@ public class PolycubeCodegen extends DefaultCodegen implements CodegenConfig {
     protected static final Logger LOGGER = LoggerFactory.getLogger(PolycubeCodegen.class);
     protected String implFolder = "/src/api";
 
-
     public static final String POLYCUBE_SERVER_UPDATE = "update";
     protected Boolean polycubeServerUpdate = Boolean.FALSE;
 
@@ -51,13 +50,14 @@ public class PolycubeCodegen extends DefaultCodegen implements CodegenConfig {
     public PolycubeCodegen() {
         super();
 
-        apiPackage = "io.swagger.server.api";
-        modelPackage = "io.swagger.server.model";
+        apiPackage = "polycube::service::api";
+        modelPackage = "polycube::service::model";
 
         modelTemplateFiles.put("src/serializer/JsonObject.h.mustache", "JsonObject.h");
         modelTemplateFiles.put("src/serializer/JsonObject.cpp.mustache", "JsonObject.cpp");
 
-        modelTemplateFiles.put("src/interface/Interface.h.mustache", "Interface.h");
+        modelTemplateFiles.put("src/base/Base.h.mustache", "Base.h");
+        modelTemplateFiles.put("src/base/Base.cpp.mustache", "Base.cpp");
 
         modelTemplateFiles.put("src/object-header.mustache", ".h");
         modelTemplateFiles.put("src/object-source.mustache", ".cpp");
@@ -122,10 +122,10 @@ public class PolycubeCodegen extends DefaultCodegen implements CodegenConfig {
             apiTemplateFiles.put("src/api/ApiImpl.cpp.mustache", "Impl.cpp");
         }
 
-        additionalProperties.put("modelNamespaceDeclarations", modelPackage.split("\\."));
-        additionalProperties.put("modelNamespace", modelPackage.replaceAll("\\.", "::"));
-        additionalProperties.put("apiNamespaceDeclarations", apiPackage.split("\\."));
-        additionalProperties.put("apiNamespace", apiPackage.replaceAll("\\.", "::"));
+        additionalProperties.put("modelNamespaceDeclarations", modelPackage.split("::"));
+        additionalProperties.put("modelNamespace", modelPackage);
+        additionalProperties.put("apiNamespaceDeclarations", apiPackage.split("::"));
+        additionalProperties.put("apiNamespace", apiPackage);
     }
 
     /**
@@ -234,7 +234,7 @@ public class PolycubeCodegen extends DefaultCodegen implements CodegenConfig {
             if (codegenModel.vendorExtensions.get("x-parent").equals(codegenModel.name)) {
                 codegenModel.vendorExtensions.remove("x-parent");
                 // TODO: hardcoded value for port class here.
-                codegenModel.vendorExtensions.put("x-inherits-from", "polycube::service::Cube<Ports>");
+                codegenModel.vendorExtensions.put("x-inherits-from", "virtual polycube::service::Cube<Ports>");
             }
         }
 
@@ -681,8 +681,9 @@ public class PolycubeCodegen extends DefaultCodegen implements CodegenConfig {
                     portsClassName = model.classname;
                 }
 
+                // TODO: isn't there a smarter way to check if the objet is the root one?
                 if (model.vendorExtensions.containsKey("x-inherits-from") &&
-                    ((String) model.vendorExtensions.get("x-inherits-from")).equals("polycube::service::Cube<Ports>")) {
+                    ((String) model.vendorExtensions.get("x-inherits-from")).equals("virtual polycube::service::Cube<Ports>")) {
                     model.vendorExtensions.put("x-is-root-object", true);
                     rootObjectModel = model;
                 }
@@ -1085,7 +1086,8 @@ public class PolycubeCodegen extends DefaultCodegen implements CodegenConfig {
         if (model.vendorExtensions.containsKey("x-is-yang-action-object") &&
                 (templateName.equals("src/object-header.mustache") ||
                         templateName.equals("src/object-source.mustache") ||
-                        templateName.equals("src/interface/Interface.h.mustache"))) {
+                        templateName.equals("src/base/Base.h.mustache") ||
+                        templateName.equals("src/base/Base.cpp.mustache"))) {
             shouldSkipModelProcess = true;
         } else if (model.vendorExtensions.containsKey("x-is-yang-grouping")) {
             shouldSkipModelProcess = (Boolean) model.vendorExtensions.get("x-is-yang-grouping");
@@ -1148,8 +1150,9 @@ public class PolycubeCodegen extends DefaultCodegen implements CodegenConfig {
         if (templateName.equals("src/serializer/JsonObject.h.mustache") ||
                 templateName.equals("src/serializer/JsonObject.cpp.mustache")) {
             return modelFileFolder() + File.separator + "serializer";
-        } else if (templateName.equals("src/interface/Interface.h.mustache")) {
-            return modelFileFolder() + File.separator + "interface";
+        } else if (templateName.equals("src/base/Base.h.mustache") ||
+                   templateName.equals("src/base/Base.cpp.mustache")) {
+            return modelFileFolder() + File.separator + "base";
         } else {
             return modelFileFolder();
         }

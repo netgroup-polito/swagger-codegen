@@ -3,16 +3,7 @@
 #pragma once
 
 {{#models}}{{#model}}
-#include "../interface/{{classname}}Interface.h"
-
-{{#vendorExtensions.x-inherits-from}}
-#include "polycube/services/cube.h"
-#include "polycube/services/port.h"
-#include "polycube/services/utils.h"
-#include "polycube/services/fifo_map.hpp"
-{{/vendorExtensions.x-inherits-from}}
-
-#include <spdlog/spdlog.h>
+#include "../base/{{classname}}Base.h"
 
 {{#vendorExtensions.x-interface-imports}}
 #include "{{{this}}}.h"
@@ -22,42 +13,30 @@
 class {{{this}}};
 {{/vendorExtensions.x-parent}}
 
-using namespace io::swagger::server::model;
+using namespace {{modelNamespace}};
 
-class {{classname}} : {{#vendorExtensions.x-inherits-from}}public {{{this}}}, {{/vendorExtensions.x-inherits-from}}public {{classname}}Interface {
-{{^vendorExtensions.x-parent}}
-  friend class {{vendorExtensions.x-child-ports-classname}};
-{{/vendorExtensions.x-parent}}
+class {{classname}} : public {{classname}}Base {
  public:
 {{#vendorExtensions.x-is-root-object}}
   {{classname}}({{#vars}}{{#vendorExtensions.x-is-key}}const {{{datatype}}} {{{name}}}, {{/vendorExtensions.x-is-key}}{{/vars}}const {{classname}}JsonObject &conf);
 {{/vendorExtensions.x-is-root-object}}
 {{#vendorExtensions.x-is-port-class}}
-  {{classname}}(polycube::service::Cube<Ports> &parent, {{#vendorExtensions.x-classname-inherited}}{{{this}}} port, {{/vendorExtensions.x-classname-inherited}}const {{classname}}JsonObject &conf);
+  {{classname}}(polycube::service::Cube<Ports> &parent,
+      {{#vendorExtensions.x-classname-inherited}}{{{this}}} port,
+      {{/vendorExtensions.x-classname-inherited}}const {{classname}}JsonObject &conf);
 {{/vendorExtensions.x-is-port-class}}
-{{^vendorExtensions.x-is-root-object}}{{^vendorExtensions.x-is-port-class}}
+{{^vendorExtensions.x-is-root-object}}
+{{^vendorExtensions.x-is-port-class}}
   {{classname}}({{{vendorExtensions.x-parent}}} &parent, const {{classname}}JsonObject &conf);
-{{/vendorExtensions.x-is-port-class}}{{/vendorExtensions.x-is-root-object}}
-
+{{/vendorExtensions.x-is-port-class}}
+{{/vendorExtensions.x-is-root-object}}
   virtual ~{{classname}}();
 {{#vendorExtensions.x-is-root-object}}
-  void packet_in({{vendorExtensions.x-child-ports-classname}} &port, polycube::service::PacketInMetadata &md, const std::vector<uint8_t> &packet) override;
-{{/vendorExtensions.x-is-root-object}}
 
-{{#vendorExtensions.x-parent}}
-  static void create({{{this}}} &parent, {{#vendorExtensions.x-key-list}}const {{{type}}} &{{{varName}}}, {{/vendorExtensions.x-key-list}}const {{classname}}JsonObject &conf);
-  static std::shared_ptr<{{classname}}> getEntry({{{this}}} &parent{{#vendorExtensions.x-key-list}}{{#lastKey}},{{/lastKey}}{{/vendorExtensions.x-key-list}}{{#vendorExtensions.x-key-list}} const {{{type}}} &{{{varName}}}{{^lastKey}},{{/lastKey}}{{/vendorExtensions.x-key-list}});
-  static void removeEntry({{{this}}} &parent{{#vendorExtensions.x-key-list}}{{#lastKey}},{{/lastKey}}{{/vendorExtensions.x-key-list}}{{#vendorExtensions.x-key-list}} const {{{type}}} &{{{varName}}}{{^lastKey}},{{/lastKey}}{{/vendorExtensions.x-key-list}});
-{{#vendorExtensions.x-is-list}}
-  static std::vector<std::shared_ptr<{{classname}}>> get({{vendorExtensions.x-parent}} &parent);
-  static void remove({{vendorExtensions.x-parent}} &parent);
-{{/vendorExtensions.x-is-list}}
-{{/vendorExtensions.x-parent}}
-{{#vendorExtensions.x-parent}}
-  std::shared_ptr<spdlog::logger> logger();
-{{/vendorExtensions.x-parent}}
-  void update(const {{classname}}JsonObject &conf) override;
-  {{classname}}JsonObject toJsonObject() override;
+  void packet_in({{vendorExtensions.x-child-ports-classname}} &port,
+      polycube::service::PacketInMetadata &md,
+      const std::vector<uint8_t> &packet) override;
+{{/vendorExtensions.x-is-root-object}}
 {{#vars}}
 {{^vendorExtensions.x-has-default-impl}}
 {{^vendorExtensions.x-is-base-datamodel}}
@@ -97,17 +76,12 @@ class {{classname}} : {{#vendorExtensions.x-inherits-from}}public {{{this}}}, {{
 {{/vendorExtensions.x-is-base-datamodel}}
 {{/vendorExtensions.x-has-default-impl}}
 {{/vars}}
-
 {{#vendorExtensions.x-has-yang-actions}}
+
 {{#vendorExtensions.x-yang-actions}}
 {{#x-yang-action-has-output}}  {{x-yang-action-output-object}}JsonObject{{/x-yang-action-has-output}}{{^x-yang-action-has-output}}void{{/x-yang-action-has-output}} {{x-yang-action-name-lower-camelcase}}({{#x-yang-action-has-input}}{{x-yang-action-input-object}}JsonObject input{{/x-yang-action-has-input}}) override;
 {{/vendorExtensions.x-yang-actions}}
 {{/vendorExtensions.x-has-yang-actions}}
-{{#vendorExtensions.x-parent}}
- private:
-  {{this}}   &parent_;
-{{/vendorExtensions.x-parent}}
 };
-
 {{/model}}
 {{/models}}

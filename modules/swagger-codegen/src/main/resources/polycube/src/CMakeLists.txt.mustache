@@ -2,6 +2,7 @@ include(${PROJECT_SOURCE_DIR}/cmake/LoadFileAsVariable.cmake)
 
 aux_source_directory(serializer SERIALIZER_SOURCES)
 aux_source_directory(api API_SOURCES)
+aux_source_directory(base BASE_SOURCES)
 
 include_directories(serializer)
 include_directories(interface)
@@ -12,8 +13,14 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_library(pcn-{{serviceNameLowerCase}} SHARED
   ${SERIALIZER_SOURCES}
   ${API_SOURCES}
-  ${SRC_SOURCES}{{#models}}{{#model}}{{^vendorExtensions.x-should-skip-model-process}}
-  {{classname}}.cpp{{/vendorExtensions.x-should-skip-model-process}}{{/model}}{{/models}}
+  ${BASE_SOURCES}
+  {{#models}}
+  {{#model}}
+  {{^vendorExtensions.x-is-yang-action-object}}
+  {{classname}}.cpp
+  {{/vendorExtensions.x-is-yang-action-object}}
+  {{/model}}
+  {{/models}}
   {{serviceNameCamelCase}}-lib.cpp)
 
 # load ebpf datapath code a variable
@@ -28,6 +35,7 @@ load_file_as_variable(pcn-{{serviceNameLowerCase}}
 
 target_link_libraries(pcn-{{serviceNameLowerCase}}
   polycube
+  tins
   uuid)
 
 # Specify shared library install directory
