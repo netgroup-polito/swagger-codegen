@@ -662,7 +662,7 @@ public class PolycubeCodegen extends DefaultCodegen implements CodegenConfig {
                             p.allowableValues.put("values", l); //add allowable values to enum
 
                         if (p.isEnum && p.defaultValue != null && !p.defaultValue.isEmpty() && !p.defaultValue.contains("\"\"")) {
-                            p.defaultValue = String.format("%s::%s", p.datatype, p.defaultValue);
+                            p.defaultValue = String.format("%s::%s", p.datatype, p.defaultValue.toUpperCase());
                         }
                     }
 
